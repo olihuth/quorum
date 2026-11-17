@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Lock, Mail } from 'lucide-react';
 
 interface AuthPageProps {
-  onLogin: (email: string, password: string) => string | null;
-  onRegister: (email: string, password: string) => string | null;
+  onLogin: (email: string, password: string) => Promise<string | null> | string | null;
+  onRegister: (email: string, password: string) => Promise<string | null> | string | null;
   onContinueAsGuest: () => void;
 }
 
@@ -19,13 +19,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleModeSwitch = (nextMode: AuthMode) => {
     setMode(nextMode);
     setErrorMessage(null);
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setErrorMessage(null);
 
@@ -48,14 +49,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         return;
       }
 
-      const registerError = onRegister(normalizedEmail, password);
+      setIsSubmitting(true);
+      const registerError = await onRegister(normalizedEmail, password);
+      setIsSubmitting(false);
       if (registerError) {
         setErrorMessage(registerError);
       }
       return;
     }
 
-    const loginError = onLogin(normalizedEmail, password);
+    setIsSubmitting(true);
+    const loginError = await onLogin(normalizedEmail, password);
+    setIsSubmitting(false);
     if (loginError) {
       setErrorMessage(loginError);
     }
@@ -185,9 +190,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
           <button
             type="submit"
-            className="w-full rounded-md bg-[#002776] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1D4ED8]"
+            disabled={isSubmitting}
+            className="w-full rounded-md bg-[#002776] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {mode === 'login' ? 'Entrar' : 'Criar conta'}
+            {isSubmitting
+              ? 'Processando...'
+              : mode === 'login'
+                ? 'Entrar'
+                : 'Criar conta'}
           </button>
         </form>
 

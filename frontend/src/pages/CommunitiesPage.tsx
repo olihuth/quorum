@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { ArrowLeft, Check, ExternalLink, Plus } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Check, ExternalLink, Plus, Search } from 'lucide-react';
 import { BillCard } from '../components/BillCard';
 import {
   Bill,
@@ -44,6 +44,13 @@ export const CommunitiesPage: React.FC<CommunitiesPageProps> = ({
   onSelectParty,
 }) => {
   const [billTab, setBillTab] = useState<CommunityBillTab>('all');
+  const [politicianSearch, setPoliticianSearch] = useState('');
+  const [visiblePoliticians, setVisiblePoliticians] = useState(12);
+
+  useEffect(() => {
+    setPoliticianSearch('');
+    setVisiblePoliticians(12);
+  }, [selectedHouseId]);
 
   const selectedHouse = useMemo(
     () => houses.find((h) => h.id === selectedHouseId) ?? null,
@@ -63,8 +70,18 @@ export const CommunitiesPage: React.FC<CommunitiesPageProps> = ({
 
   const housePoliticians = useMemo(() => {
     if (!selectedHouse) return [];
-    return politicians.filter((p) => p.houseId === selectedHouse.id);
-  }, [politicians, selectedHouse]);
+    const query = politicianSearch.trim().toLowerCase();
+    return politicians
+      .filter((p) => p.houseId === selectedHouse.id)
+      .filter((p) => {
+        if (!query) return true;
+        return (
+          p.name.toLowerCase().includes(query) ||
+          p.partyAcronym.toLowerCase().includes(query) ||
+          p.stateOrCity.toLowerCase().includes(query)
+        );
+      });
+  }, [politicianSearch, politicians, selectedHouse]);
 
   // Dedicated Community Detail View
   if (selectedHouse) {
@@ -195,10 +212,7 @@ export const CommunitiesPage: React.FC<CommunitiesPageProps> = ({
             <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
               {selectedHouse.partyComposition.map((party) => {
                 const pct = Math.round((party.seats / selectedHouse.totalSeats) * 100);
-                const isClickable =
-                  party.partyAcronym !== 'Outros' &&
-                  party.partyAcronym !== 'PP' &&
-                  party.partyAcronym !== 'REPUBLICANOS';
+                const isClickable = party.partyAcronym !== 'Outros';
 
                 return (
                   <button
@@ -231,33 +245,82 @@ export const CommunitiesPage: React.FC<CommunitiesPageProps> = ({
 
         {/* Monitored Representatives in this House */}
         <section className="rounded-lg border border-[#E2E8F0] bg-white p-5">
-          <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
-            <h2 className="text-sm font-bold text-[#0F172A]">
-              Parlamentares Monitorados na Casa
-            </h2>
-            <span className="text-xs text-slate-400">Perfis informativos</span>
+          <div className="flex flex-col justify-between gap-3 border-b border-[#E2E8F0] pb-3 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-sm font-bold text-[#0F172A]">
+                Parlamentares Monitorados na Casa ({housePoliticians.length})
+              </h2>
+              <span className="text-xs text-slate-400">Perfis informativos somente leitura</span>
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                value={politicianSearch}
+                onChange={(e) => {
+                  setPoliticianSearch(e.target.value);
+                  setVisiblePoliticians(12);
+                }}
+                placeholder="Filtrar por nome, partido ou UF..."
+                className="w-full rounded-md border border-[#E2E8F0] bg-[#F8FAFC] py-1.5 pl-8 pr-3 text-xs text-[#0F172A] placeholder:text-slate-400 focus:border-[#002776] focus:bg-white focus:outline-none"
+              />
+            </div>
           </div>
 
-          <div className="mt-3 divide-y divide-[#E2E8F0]">
-            {housePoliticians.map((pol) => (
-              <button
-                key={pol.id}
-                type="button"
-                onClick={() => onSelectPolitician(pol.id)}
-                className="flex w-full items-center justify-between gap-4 py-3 text-left transition-colors hover:bg-[#F8FAFC]"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-[#0F172A]">{pol.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {pol.role} · {pol.partyAcronym} · {pol.stateOrCity}
-                  </p>
+          {housePoliticians.length === 0 ? (
+            <p className="py-6 text-center text-xs text-slate-500">
+              Nenhum parlamentar encontrado com este filtro nesta Casa.
+            </p>
+          ) : (
+            <>
+              <div className="mt-3 divide-y divide-[#E2E8F0]">
+                {housePoliticians.slice(0, visiblePoliticians).map((pol) => (
+                  <button
+                    key={pol.id}
+                    type="button"
+                    onClick={() => onSelectPolitician(pol.id)}
+                    className="flex w-full items-center justify-between gap-4 py-3 text-left transition-colors hover:bg-[#F8FAFC]"
+                  >
+                    <div className="flex items-center gap-3">
+                      {pol.photoUrl ? (
+                        <img
+                          src={pol.photoUrl}
+                          alt={pol.name}
+                          className="h-9 w-9 shrink-0 rounded-full border border-[#E2E8F0] object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-[#002776]">
+                          {pol.partyAcronym.slice(0, 3)}
+                        </span>
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold text-[#0F172A]">{pol.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {pol.role} · {pol.partyAcronym} · {pol.stateOrCity}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-xs font-semibold text-[#1D4ED8]">
+                      Ver ficha →
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {housePoliticians.length > visiblePoliticians && (
+                <div className="mt-3 border-t border-[#E2E8F0] pt-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setVisiblePoliticians((prev) => prev + 24)}
+                    className="rounded-md border border-[#E2E8F0] bg-white px-4 py-1.5 text-xs font-semibold text-[#002776] hover:bg-[#F8FAFC]"
+                  >
+                    Mostrar mais parlamentares ({housePoliticians.length - visiblePoliticians} restantes)
+                  </button>
                 </div>
-                <span className="text-xs font-semibold text-[#1D4ED8]">
-                  Ver histórico →
-                </span>
-              </button>
-            ))}
-          </div>
+              )}
+            </>
+          )}
         </section>
 
         {/* Filterable Bills List */}

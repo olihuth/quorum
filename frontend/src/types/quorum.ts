@@ -68,6 +68,7 @@ export interface LegislativeHouse {
 
 export interface Bill {
   id: string;
+  backendId?: number;
   number: string;
   title: string;
   theme: string;
@@ -101,6 +102,7 @@ export interface PoliticianVoteRecord {
 
 export interface Politician {
   id: string;
+  backendId?: number;
   name: string;
   role: string;
   partyAcronym: string;
@@ -109,6 +111,7 @@ export interface Politician {
   houseId: string;
   houseShortName: string;
   legislature: string;
+  photoUrl?: string;
   officialPortalUrl: string;
   attendanceRate: string;
   biographySummary: string;

@@ -10,8 +10,11 @@ interface AccountSettingsPageProps {
   account: UserAccount;
   houses: LegislativeHouse[];
   followedHouseIds: string[];
-  onUpdateEmail: (newEmail: string) => string | null;
-  onUpdatePassword: (currentPassword: string, newPassword: string) => string | null;
+  onUpdateEmail: (newEmail: string) => Promise<string | null> | string | null;
+  onUpdatePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<string | null> | string | null;
   onUpdateNotifications: (next: UserNotificationSettings) => void;
   onToggleFollow: (houseId: string) => void;
   onLogout: () => void;
@@ -35,7 +38,7 @@ export const AccountSettingsPage: React.FC<AccountSettingsPageProps> = ({
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const handleEmailSubmit = (event: React.FormEvent) => {
+  const handleEmailSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setEmailError(null);
 
@@ -46,13 +49,13 @@ export const AccountSettingsPage: React.FC<AccountSettingsPageProps> = ({
       return;
     }
 
-    const err = onUpdateEmail(normalized);
+    const err = await onUpdateEmail(normalized);
     if (err) {
       setEmailError(err);
     }
   };
 
-  const handlePasswordSubmit = (event: React.FormEvent) => {
+  const handlePasswordSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setPasswordError(null);
 
@@ -66,7 +69,7 @@ export const AccountSettingsPage: React.FC<AccountSettingsPageProps> = ({
       return;
     }
 
-    const err = onUpdatePassword(currentPassword, newPassword);
+    const err = await onUpdatePassword(currentPassword, newPassword);
     if (err) {
       setPasswordError(err);
       return;

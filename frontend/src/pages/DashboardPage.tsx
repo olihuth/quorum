@@ -233,10 +233,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
             <div className="w-full space-y-2.5">
               {donutSegments.slice(0, 7).map((party) => {
-                const canInspect =
-                  party.partyAcronym !== 'Outros' &&
-                  party.partyAcronym !== 'PP' &&
-                  party.partyAcronym !== 'REPUBLICANOS';
+                const canInspect = party.partyAcronym !== 'Outros';
 
                 return (
                   <div key={party.partyAcronym} className="space-y-1">

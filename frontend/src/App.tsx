@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FollowedDrawer } from './components/FollowedDrawer';
 import { Navbar } from './components/Navbar';
 import { ToastContainer } from './components/Toast';
@@ -15,8 +15,21 @@ import { DashboardPage } from './pages/DashboardPage';
 import { FeedPage } from './pages/FeedPage';
 import { PoliticianProfilePage } from './pages/PoliticianProfilePage';
 import {
+  ApiError,
+  fetchInitialData,
+  fetchPoliticianDetail,
+  loginUserApi,
+  registerUserApi,
+  submitBillLike,
+  submitBillVote,
+  updateUserSettingsApi,
+} from './services/api';
+import {
   Bill,
+  LegislativeHouse,
   NavigationTab,
+  PartyInfo,
+  Politician,
   ProfileViewTarget,
   ToastNotification,
   UserAccount,
@@ -30,6 +43,19 @@ const DEFAULT_NOTIFICATIONS: UserNotificationSettings = {
   statusChangeNotifications: false,
 };
 
+function getOrCreateGuestIdentifier(): string {
+  const storageKey = 'quorum_guest_citizen_id';
+  try {
+    const existing = window.localStorage.getItem(storageKey);
+    if (existing) return existing;
+    const generated = `guest-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    window.localStorage.setItem(storageKey, generated);
+    return generated;
+  } catch {
+    return `guest-session-${Math.random().toString(36).slice(2, 10)}`;
+  }
+}
+
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavigationTab>('auth');
   const [selectedHouseId, setSelectedHouseId] = useState<string | null>(null);
@@ -38,9 +64,18 @@ export const App: React.FC = () => {
     id: MOCK_POLITICIANS[0].id,
   });
 
+  // Live Backend Data State (initialized with local fallback until FastAPI responds)
+  const [houses, setHouses] = useState<LegislativeHouse[]>(LEGISLATIVE_HOUSES);
+  const [bills, setBills] = useState<Bill[]>(MOCK_BILLS);
+  const [politicians, setPoliticians] = useState<Politician[]>(MOCK_POLITICIANS);
+  const [parties, setParties] = useState<PartyInfo[]>(MOCK_PARTIES);
+  const [isBackendConnected, setIsBackendConnected] = useState(false);
+
   // Private Citizen Account State (no public citizen profile)
   const [registeredAccounts, setRegisteredAccounts] = useState<UserAccount[]>([]);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [guestIdentifier] = useState<string>(() => getOrCreateGuestIdentifier());
 
   // Followed Legislative Houses state (Congresso Nacional & Senado Federal by default)
   const [followedHouseIds, setFollowedHouseIds] = useState<string[]>(() =>
@@ -71,8 +106,97 @@ export const App: React.FC = () => {
     setToasts((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
+  // Load real houses, compositions, politicians, and curated bills from FastAPI on mount
+  useEffect(() => {
+    let active = true;
+    fetchInitialData()
+      .then((data) => {
+        if (!active) return;
+        setHouses(data.houses);
+        setBills(data.bills);
+        setPoliticians(data.politicians);
+        setParties(data.parties);
+        setIsBackendConnected(true);
+        if (data.politicians.length > 0) {
+          setProfileTarget((prev) =>
+            prev.type === 'politician' &&
+            !data.politicians.some((p) => p.id === prev.id)
+              ? { type: 'politician', id: data.politicians[0].id }
+              : prev,
+          );
+        }
+      })
+      .catch(() => {
+        // Keep local mock fallback silently if backend server is offline
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Fetch detailed voting history & authored bills when a politician profile is opened
+  useEffect(() => {
+    if (!isBackendConnected || profileTarget.type !== 'politician') return;
+    const targetPol = politicians.find((p) => p.id === profileTarget.id);
+    if (!targetPol?.backendId) return;
+
+    let cancelled = false;
+    fetchPoliticianDetail(targetPol.backendId, bills)
+      .then((detail) => {
+        if (cancelled) return;
+        setPoliticians((prev) =>
+          prev.map((p) =>
+            p.id === targetPol.id
+              ? {
+                  ...p,
+                  authoredBillIds: detail.authoredBillIds,
+                  votingHistory: detail.votingHistory,
+                }
+              : p,
+          ),
+        );
+      })
+      .catch(() => {
+        // Ignore transient fetch errors
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bills, isBackendConnected, politicians.length, profileTarget]);
+
   const handleLogin = useCallback(
-    (email: string, password: string): string | null => {
+    async (email: string, password: string): Promise<string | null> => {
+      if (isBackendConnected) {
+        try {
+          const res = await loginUserApi(email, password);
+          const loggedAccount: UserAccount = {
+            email: res.user.email,
+            passwordHash: '',
+            createdAt: res.user.created_at,
+            notifications: {
+              urgentVoteAlerts: res.user.urgent_vote_alerts,
+              emailDigest: res.user.email_digest,
+              statusChangeNotifications: res.user.status_change_notifications,
+            },
+          };
+          setAuthToken(res.access_token);
+          setCurrentUser(loggedAccount);
+          setVoteAlertsEnabled(res.user.urgent_vote_alerts);
+          if (res.user.followed_house_slugs.length > 0) {
+            setFollowedHouseIds(res.user.followed_house_slugs);
+          }
+          setActiveTab('feed');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          pushToast(`Bem-vindo(a) de volta ao Quorum (${res.user.email})!`, 'success');
+          return null;
+        } catch (err) {
+          if (err instanceof ApiError) {
+            return err.message;
+          }
+          return 'Não foi possível conectar ao servidor de autenticação.';
+        }
+      }
+
       const found = registeredAccounts.find((acc) => acc.email === email);
       if (!found) {
         return 'Conta não encontrada para este e-mail. Crie uma conta na aba "Criar Conta".';
@@ -87,11 +211,43 @@ export const App: React.FC = () => {
       pushToast(`Bem-vindo(a) de volta ao Quorum (${found.email})!`, 'success');
       return null;
     },
-    [pushToast, registeredAccounts],
+    [isBackendConnected, pushToast, registeredAccounts],
   );
 
   const handleRegister = useCallback(
-    (email: string, password: string): string | null => {
+    async (email: string, password: string): Promise<string | null> => {
+      if (isBackendConnected) {
+        try {
+          const res = await registerUserApi(email, password);
+          const newAccount: UserAccount = {
+            email: res.user.email,
+            passwordHash: '',
+            createdAt: res.user.created_at,
+            notifications: {
+              urgentVoteAlerts: res.user.urgent_vote_alerts,
+              emailDigest: res.user.email_digest,
+              statusChangeNotifications: res.user.status_change_notifications,
+            },
+          };
+          setAuthToken(res.access_token);
+          setCurrentUser(newAccount);
+          setVoteAlertsEnabled(res.user.urgent_vote_alerts);
+          setFollowedHouseIds(res.user.followed_house_slugs);
+          setActiveTab('feed');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          pushToast(
+            'Conta privada criada no servidor! Exibindo suas Casas Seguidas.',
+            'success',
+          );
+          return null;
+        } catch (err) {
+          if (err instanceof ApiError) {
+            return err.message;
+          }
+          return 'Erro ao registrar conta no servidor.';
+        }
+      }
+
       const exists = registeredAccounts.some((acc) => acc.email === email);
       if (exists) {
         return 'Já existe uma conta cadastrada com este e-mail.';
@@ -110,22 +266,35 @@ export const App: React.FC = () => {
       pushToast('Conta privada criada com sucesso! Exibindo suas Casas Seguidas.', 'success');
       return null;
     },
-    [pushToast, registeredAccounts],
+    [isBackendConnected, pushToast, registeredAccounts],
   );
 
   const handleLogout = useCallback(() => {
     setCurrentUser(null);
+    setAuthToken(null);
     setActiveTab('auth');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     pushToast('Você saiu da sua conta privada.', 'info');
   }, [pushToast]);
 
   const handleUpdateEmail = useCallback(
-    (newEmail: string): string | null => {
+    async (newEmail: string): Promise<string | null> => {
       if (!currentUser) return 'Sessão expirada.';
       if (newEmail === currentUser.email) {
         return 'Informe um e-mail diferente do atual.';
       }
+
+      if (isBackendConnected && authToken) {
+        try {
+          const updated = await updateUserSettingsApi(authToken, { email: newEmail });
+          setCurrentUser({ ...currentUser, email: updated.email });
+          pushToast('E-mail atualizado com sucesso!', 'success');
+          return null;
+        } catch (err) {
+          return err instanceof ApiError ? err.message : 'Erro ao atualizar e-mail.';
+        }
+      }
+
       const alreadyInUse = registeredAccounts.some(
         (acc) => acc.email === newEmail && acc.email !== currentUser.email,
       );
@@ -142,12 +311,26 @@ export const App: React.FC = () => {
       pushToast('E-mail atualizado com sucesso!', 'success');
       return null;
     },
-    [currentUser, pushToast, registeredAccounts],
+    [authToken, currentUser, isBackendConnected, pushToast, registeredAccounts],
   );
 
   const handleUpdatePassword = useCallback(
-    (currentPassword: string, newPassword: string): string | null => {
+    async (currentPassword: string, newPassword: string): Promise<string | null> => {
       if (!currentUser) return 'Sessão expirada.';
+
+      if (isBackendConnected && authToken) {
+        try {
+          await updateUserSettingsApi(authToken, {
+            current_password: currentPassword,
+            new_password: newPassword,
+          });
+          pushToast('Senha atualizada com sucesso!', 'success');
+          return null;
+        } catch (err) {
+          return err instanceof ApiError ? err.message : 'Erro ao atualizar senha.';
+        }
+      }
+
       if (currentUser.passwordHash !== currentPassword) {
         return 'A senha atual informada está incorreta.';
       }
@@ -159,7 +342,7 @@ export const App: React.FC = () => {
       pushToast('Senha atualizada com sucesso!', 'success');
       return null;
     },
-    [currentUser, pushToast],
+    [authToken, currentUser, isBackendConnected, pushToast],
   );
 
   const handleUpdateNotifications = useCallback(
@@ -174,35 +357,88 @@ export const App: React.FC = () => {
         prev.map((acc) => (acc.email === currentUser.email ? updatedUser : acc)),
       );
       setVoteAlertsEnabled(nextNotifications.urgentVoteAlerts);
+      if (isBackendConnected && authToken) {
+        updateUserSettingsApi(authToken, { notifications: nextNotifications }).catch(() => {
+          // Non-blocking sync
+        });
+      }
       pushToast('Preferências de notificação atualizadas.', 'info');
     },
-    [currentUser, pushToast],
+    [authToken, currentUser, isBackendConnected, pushToast],
   );
 
   const handleToggleFollow = useCallback(
     (houseId: string) => {
-      const house = LEGISLATIVE_HOUSES.find((h) => h.id === houseId);
+      const house = houses.find((h) => h.id === houseId);
       setFollowedHouseIds((prev) => {
         const alreadyFollowing = prev.includes(houseId);
-        if (alreadyFollowing) {
-          pushToast(
-            `Você deixou de seguir ${house?.shortName ?? 'esta Casa Legislativa'}.`,
-            'info',
+        const nextList = alreadyFollowing
+          ? prev.filter((id) => id !== houseId)
+          : [...prev, houseId];
+
+        if (isBackendConnected && authToken) {
+          updateUserSettingsApi(authToken, { followed_house_slugs: nextList }).catch(
+            () => {},
           );
-          return prev.filter((id) => id !== houseId);
         }
+
         pushToast(
-          `Agora você acompanha ${house?.shortName ?? 'esta Casa Legislativa'}!`,
-          'success',
+          alreadyFollowing
+            ? `Você deixou de seguir ${house?.shortName ?? 'esta Casa Legislativa'}.`
+            : `Agora você acompanha ${house?.shortName ?? 'esta Casa Legislativa'}!`,
+          alreadyFollowing ? 'info' : 'success',
         );
-        return [...prev, houseId];
+        return nextList;
       });
     },
-    [pushToast],
+    [authToken, houses, isBackendConnected, pushToast],
   );
 
   const handleVote = useCallback(
-    (billId: string, option: VoteOption) => {
+    async (billId: string, option: VoteOption) => {
+      if (userVotes[billId]) return;
+
+      const targetBill = bills.find((b) => b.id === billId);
+      if (isBackendConnected && targetBill?.backendId) {
+        const citizenIdentifier = currentUser?.email ?? guestIdentifier;
+        try {
+          const response = await submitBillVote(
+            targetBill.backendId,
+            citizenIdentifier,
+            option,
+          );
+          setUserVotes((prev) => ({ ...prev, [billId]: option }));
+          setBills((prev) =>
+            prev.map((b) =>
+              b.id === billId
+                ? {
+                    ...b,
+                    votesInFavor: response.votes_favor,
+                    votesAgainst: response.votes_against,
+                  }
+                : b,
+            ),
+          );
+          const label = option === 'favor' ? 'A Favor' : 'Contra';
+          pushToast(
+            `Voto "${label}" registrado com segurança (LGPD SHA-256)!`,
+            'success',
+          );
+          return;
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 409) {
+            setUserVotes((prev) => ({ ...prev, [billId]: option }));
+            pushToast(err.message, 'warning');
+            return;
+          }
+          pushToast(
+            err instanceof Error ? err.message : 'Erro ao registrar voto no servidor.',
+            'warning',
+          );
+          return;
+        }
+      }
+
       setUserVotes((prev) => {
         if (prev[billId]) return prev;
         const label = option === 'favor' ? 'A Favor' : 'Contra';
@@ -213,16 +449,36 @@ export const App: React.FC = () => {
         return { ...prev, [billId]: option };
       });
     },
-    [pushToast],
+    [bills, currentUser?.email, guestIdentifier, isBackendConnected, pushToast, userVotes],
   );
 
-  const handleToggleLike = useCallback((billId: string) => {
-    setLikedBillIds((prev) =>
-      prev.includes(billId)
-        ? prev.filter((id) => id !== billId)
-        : [...prev, billId],
-    );
-  }, []);
+  const handleToggleLike = useCallback(
+    (billId: string) => {
+      const currentlyLiked = likedBillIds.includes(billId);
+      const targetBill = bills.find((b) => b.id === billId);
+
+      setLikedBillIds((prev) =>
+        currentlyLiked ? prev.filter((id) => id !== billId) : [...prev, billId],
+      );
+
+      if (!currentlyLiked && isBackendConnected && targetBill?.backendId) {
+        submitBillLike(targetBill.backendId)
+          .then((res) => {
+            setBills((prev) =>
+              prev.map((b) =>
+                b.id === billId
+                  ? { ...b, likesCount: Math.max(res.likes_count - 1, b.likesCount) }
+                  : b,
+              ),
+            );
+          })
+          .catch(() => {
+            // Non-blocking fallback
+          });
+      }
+    },
+    [bills, isBackendConnected, likedBillIds],
+  );
 
   const handleShare = useCallback(
     async (bill: Bill) => {
@@ -296,7 +552,7 @@ export const App: React.FC = () => {
         {activeTab === 'account' && currentUser && (
           <AccountSettingsPage
             account={currentUser}
-            houses={LEGISLATIVE_HOUSES}
+            houses={houses}
             followedHouseIds={followedHouseIds}
             onUpdateEmail={handleUpdateEmail}
             onUpdatePassword={handleUpdatePassword}
@@ -316,8 +572,8 @@ export const App: React.FC = () => {
 
         {activeTab === 'feed' && (
           <FeedPage
-            bills={MOCK_BILLS}
-            houses={LEGISLATIVE_HOUSES}
+            bills={bills}
+            houses={houses}
             followedHouseIds={followedHouseIds}
             voteAlertsEnabled={voteAlertsEnabled}
             userVotes={userVotes}
@@ -333,9 +589,9 @@ export const App: React.FC = () => {
 
         {activeTab === 'communities' && (
           <CommunitiesPage
-            houses={LEGISLATIVE_HOUSES}
-            bills={MOCK_BILLS}
-            politicians={MOCK_POLITICIANS}
+            houses={houses}
+            bills={bills}
+            politicians={politicians}
             followedHouseIds={followedHouseIds}
             selectedHouseId={selectedHouseId}
             userVotes={userVotes}
@@ -353,10 +609,10 @@ export const App: React.FC = () => {
         {activeTab === 'profile' && (
           <PoliticianProfilePage
             target={profileTarget}
-            politicians={MOCK_POLITICIANS}
-            parties={MOCK_PARTIES}
-            bills={MOCK_BILLS}
-            houses={LEGISLATIVE_HOUSES}
+            politicians={politicians}
+            parties={parties}
+            bills={bills}
+            houses={houses}
             onSelectTarget={setProfileTarget}
             onSelectHouse={(id) => handleOpenCommunity(id)}
             onOpenBillInFeed={() => handleSelectTab('feed')}
@@ -365,8 +621,8 @@ export const App: React.FC = () => {
 
         {activeTab === 'dashboard' && (
           <DashboardPage
-            houses={LEGISLATIVE_HOUSES}
-            bills={MOCK_BILLS}
+            houses={houses}
+            bills={bills}
             userVotes={userVotes}
             onSelectHouse={(id) => handleOpenCommunity(id)}
             onSelectParty={handleOpenParty}
@@ -376,9 +632,27 @@ export const App: React.FC = () => {
 
       <footer className="mt-12 border-t border-[#E2E8F0] bg-white py-6 text-center text-xs text-slate-500">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="font-semibold text-[#002776]">
-            Quorum · Plataforma Cívica de Transparência Legislativa (Brasil)
-          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <p className="font-semibold text-[#002776]">
+              Quorum · Plataforma Cívica de Transparência Legislativa (Brasil)
+            </p>
+            <span className="text-slate-300">·</span>
+            <span
+              className={`inline-flex items-center gap-1.5 font-medium ${
+                isBackendConnected ? 'text-[#009C3B]' : 'text-slate-400'
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isBackendConnected ? 'bg-[#009C3B]' : 'bg-slate-400'
+                }`}
+                aria-hidden="true"
+              />
+              {isBackendConnected
+                ? 'Conectado à API FastAPI · PostgreSQL 16'
+                : 'Modo demonstração local'}
+            </span>
+          </div>
           <p className="mt-1">
             Arquitetura limpa, sem ruído social e orientada a dados públicos oficiais e linguagem cidadã.
           </p>
@@ -388,7 +662,7 @@ export const App: React.FC = () => {
       <FollowedDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        houses={LEGISLATIVE_HOUSES}
+        houses={houses}
         followedHouseIds={followedHouseIds}
         voteAlertsEnabled={voteAlertsEnabled}
         onToggleFollow={handleToggleFollow}
@@ -396,12 +670,13 @@ export const App: React.FC = () => {
           setVoteAlertsEnabled((prev) => {
             const next = !prev;
             if (currentUser) {
+              const updatedNotifications = {
+                ...currentUser.notifications,
+                urgentVoteAlerts: next,
+              };
               const updatedUser: UserAccount = {
                 ...currentUser,
-                notifications: {
-                  ...currentUser.notifications,
-                  urgentVoteAlerts: next,
-                },
+                notifications: updatedNotifications,
               };
               setCurrentUser(updatedUser);
               setRegisteredAccounts((accs) =>
@@ -409,6 +684,11 @@ export const App: React.FC = () => {
                   acc.email === currentUser.email ? updatedUser : acc,
                 ),
               );
+              if (isBackendConnected && authToken) {
+                updateUserSettingsApi(authToken, {
+                  notifications: updatedNotifications,
+                }).catch(() => {});
+              }
             }
             pushToast(
               next
