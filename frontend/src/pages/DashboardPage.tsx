@@ -1,5 +1,42 @@
 import React, { useMemo, useState } from 'react';
-import { Bill, LegislativeHouse, VoteOption } from '../types/quorum';
+import { Bill, BillStatus, LegislativeHouse, VoteOption } from '../types/quorum';
+
+interface BillComparisonMetrics {
+  bill: Bill;
+  totalVotes: number;
+  citizenFavorPct: number;
+  officialApprovalPct: number;
+  convergenceIndex: number;
+}
+
+function computeBillComparisonMetrics(
+  bill: Bill,
+  userChoice?: VoteOption,
+): BillComparisonMetrics {
+  const favorVotes = bill.votesInFavor + (userChoice === 'favor' ? 1 : 0);
+  const againstVotes = bill.votesAgainst + (userChoice === 'against' ? 1 : 0);
+  const totalVotes = favorVotes + againstVotes;
+  const citizenFavorPct = totalVotes > 0 ? Math.round((favorVotes / totalVotes) * 100) : 0;
+  const officialApprovalPct = bill.officialApprovalRate ?? 70;
+  const convergenceIndex = Math.max(
+    0,
+    100 - Math.abs(citizenFavorPct - officialApprovalPct),
+  );
+
+  return {
+    bill,
+    totalVotes,
+    citizenFavorPct,
+    officialApprovalPct,
+    convergenceIndex,
+  };
+}
+
+const BILL_STATUS_OPTIONS: BillStatus[] = [
+  'Votação Agendada',
+  'Em Tramitação',
+  'Aprovado',
+];
 
 interface DashboardPageProps {
   houses: LegislativeHouse[];
@@ -20,6 +57,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     houses[0]?.id ?? 'congresso-nacional',
   );
   const [billHouseFilter, setBillHouseFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | BillStatus>('all');
 
   const selectedHouse = useMemo(
     () => houses.find((h) => h.id === selectedHouseId) ?? houses[0],
@@ -27,16 +65,27 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   );
 
   const filteredBills = useMemo(() => {
-    if (billHouseFilter === 'all') return bills;
-    return bills.filter((b) => b.houseId === billHouseFilter);
-  }, [billHouseFilter, bills]);
+    return bills.filter((bill) => {
+      const matchesHouse = billHouseFilter === 'all' || bill.houseId === billHouseFilter;
+      const matchesStatus = statusFilter === 'all' || bill.status === statusFilter;
+      return matchesHouse && matchesStatus;
+    });
+  }, [billHouseFilter, statusFilter, bills]);
+
+  const billComparisons = useMemo(
+    () =>
+      filteredBills.map((bill) =>
+        computeBillComparisonMetrics(bill, userVotes[bill.id]),
+      ),
+    [filteredBills, userVotes],
+  );
 
   const kpis = useMemo(() => {
-    const totalBills = filteredBills.length;
-    const totalCitizenVotes = filteredBills.reduce((acc, bill) => {
-      const userChoice = userVotes[bill.id];
-      return acc + bill.votesInFavor + bill.votesAgainst + (userChoice ? 1 : 0);
-    }, 0);
+    const totalBills = billComparisons.length;
+    const totalCitizenVotes = billComparisons.reduce(
+      (acc, item) => acc + item.totalVotes,
+      0,
+    );
 
     const approvedCount = filteredBills.filter((b) => b.status === 'Aprovado').length;
     const approvalRate = totalBills > 0 ? Math.round((approvedCount / totalBills) * 100) : 0;
@@ -44,13 +93,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const avgCitizenFavor =
       totalBills > 0
         ? Math.round(
-            filteredBills.reduce((acc, bill) => {
-              const userChoice = userVotes[bill.id];
-              const favor = bill.votesInFavor + (userChoice === 'favor' ? 1 : 0);
-              const against = bill.votesAgainst + (userChoice === 'against' ? 1 : 0);
-              const total = favor + against;
-              return acc + (total > 0 ? (favor / total) * 100 : 0);
-            }, 0) / totalBills,
+            billComparisons.reduce((acc, item) => acc + item.citizenFavorPct, 0) /
+              totalBills,
+          )
+        : 0;
+
+    const avgConvergence =
+      totalBills > 0
+        ? Math.round(
+            billComparisons.reduce((acc, item) => acc + item.convergenceIndex, 0) /
+              totalBills,
           )
         : 0;
 
@@ -60,8 +112,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       approvedCount,
       approvalRate,
       avgCitizenFavor,
+      avgConvergence,
     };
-  }, [filteredBills, userVotes]);
+  }, [billComparisons, filteredBills]);
 
   const donutSegments = useMemo(() => {
     if (!selectedHouse) return [];
@@ -98,32 +151,56 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor="bill-house-filter"
-            className="text-xs font-medium text-slate-500"
-          >
-            Recorte:
-          </label>
-          <select
-            id="bill-house-filter"
-            value={billHouseFilter}
-            onChange={(e) => {
-              const value = e.target.value;
-              setBillHouseFilter(value);
-              if (value !== 'all') {
-                setSelectedHouseId(value);
-              }
-            }}
-            className="rounded-md border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] focus:border-[#002776] focus:outline-none"
-          >
-            <option value="all">Todas as Casas Monitoradas</option>
-            {houses.map((house) => (
-              <option key={house.id} value={house.id}>
-                {house.shortName} ({house.sphere})
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="bill-house-filter"
+              className="text-xs font-medium text-slate-500"
+            >
+              Recorte:
+            </label>
+            <select
+              id="bill-house-filter"
+              value={billHouseFilter}
+              onChange={(e) => {
+                const value = e.target.value;
+                setBillHouseFilter(value);
+                if (value !== 'all') {
+                  setSelectedHouseId(value);
+                }
+              }}
+              className="rounded-md border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] focus:border-[#002776] focus:outline-none"
+            >
+              <option value="all">Todas as Casas Monitoradas</option>
+              {houses.map((house) => (
+                <option key={house.id} value={house.id}>
+                  {house.shortName} ({house.sphere})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="bill-status-filter"
+              className="text-xs font-medium text-slate-500"
+            >
+              Status:
+            </label>
+            <select
+              id="bill-status-filter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | BillStatus)}
+              className="rounded-md border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F172A] focus:border-[#002776] focus:outline-none"
+            >
+              <option value="all">Todos os Status</option>
+              {BILL_STATUS_OPTIONS.map((statusOption) => (
+                <option key={statusOption} value={statusOption}>
+                  {statusOption}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </section>
 
@@ -166,12 +243,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         <div className="p-5">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Apoio Cidadão Médio
+            Convergência Média
           </p>
           <p className="tabular-nums mt-2 text-3xl font-bold text-[#0F172A]">
-            {kpis.avgCitizenFavor}%
+            {kpis.avgConvergence}%
           </p>
-          <p className="mt-1 text-xs text-slate-500">Média de votos &ldquo;A Favor&rdquo;</p>
+          <p className="tabular-nums mt-1 text-xs text-slate-500">
+            Apoio cidadão médio: {kpis.avgCitizenFavor}%
+          </p>
         </div>
       </section>
 
@@ -305,72 +384,102 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
 
           <div className="divide-y divide-[#E2E8F0]">
-            {filteredBills.map((bill) => {
-              const userChoice = userVotes[bill.id];
-              const favor = bill.votesInFavor + (userChoice === 'favor' ? 1 : 0);
-              const against = bill.votesAgainst + (userChoice === 'against' ? 1 : 0);
-              const total = favor + against;
-              const citizenPct = total > 0 ? Math.round((favor / total) * 100) : 0;
-              const officialPct = bill.officialApprovalRate ?? 70;
+            {billComparisons.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-xs font-medium text-slate-500">
+                  Nenhuma proposição encontrada para os filtros selecionados.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBillHouseFilter('all');
+                    setStatusFilter('all');
+                  }}
+                  className="mt-2 text-xs font-semibold text-[#002776] hover:underline"
+                >
+                  Limpar filtros
+                </button>
+              </div>
+            ) : (
+              billComparisons.map(
+                ({
+                  bill,
+                  totalVotes,
+                  citizenFavorPct,
+                  officialApprovalPct,
+                  convergenceIndex,
+                }) => (
+                  <div key={bill.id} className="py-4 first:pt-4 last:pb-0">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold text-[#002776]">
+                          {bill.number}
+                        </span>
+                        <span className="text-slate-300">·</span>
+                        <span className="text-slate-500">{bill.houseShortName}</span>
+                      </div>
 
-              return (
-                <div key={bill.id} className="py-4 first:pt-4 last:pb-0">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-semibold text-[#002776]">
-                        {bill.number}
-                      </span>
-                      <span className="text-slate-300">·</span>
-                      <span className="text-slate-500">{bill.houseShortName}</span>
-                    </div>
-
-                    <span
-                      className={`font-semibold ${
-                        bill.status === 'Aprovado'
-                          ? 'text-[#009C3B]'
-                          : bill.status === 'Votação Agendada'
-                            ? 'text-amber-700'
-                            : 'text-[#1D4ED8]'
-                      }`}
-                    >
-                      {bill.status}
-                    </span>
-                  </div>
-
-                  <p className="mt-1 text-xs font-semibold text-[#0F172A]">{bill.title}</p>
-
-                  <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
-                    <div>
-                      <div className="tabular-nums mb-1 flex justify-between text-[11px] font-medium">
-                        <span className="text-[#009C3B]">Cidadãos</span>
-                        <span className="text-slate-600">
-                          {citizenPct}% ({total.toLocaleString('pt-BR')})
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`tabular-nums rounded px-1.5 py-0.5 text-[11px] font-semibold ${
+                            convergenceIndex >= 80
+                              ? 'bg-emerald-50 text-[#009C3B]'
+                              : convergenceIndex >= 50
+                                ? 'bg-slate-100 text-slate-700'
+                                : 'bg-rose-50 text-rose-700'
+                          }`}
+                        >
+                          Convergência: {convergenceIndex}%
+                        </span>
+                        <span
+                          className={`font-semibold ${
+                            bill.status === 'Aprovado'
+                              ? 'text-[#009C3B]'
+                              : bill.status === 'Votação Agendada'
+                                ? 'text-amber-700'
+                                : 'text-[#1D4ED8]'
+                          }`}
+                        >
+                          {bill.status}
                         </span>
                       </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className="h-full rounded-full bg-[#009C3B] transition-all duration-300"
-                          style={{ width: `${citizenPct}%` }}
-                        />
-                      </div>
                     </div>
 
-                    <div>
-                      <div className="tabular-nums mb-1 flex justify-between text-[11px] font-medium">
-                        <span className="text-[#1D4ED8]">Aprovação Oficial</span>
-                        <span className="text-slate-600">{officialPct}%</span>
+                    <p className="mt-1 text-xs font-semibold text-[#0F172A]">{bill.title}</p>
+
+                    <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
+                      <div>
+                        <div className="tabular-nums mb-1 flex justify-between text-[11px] font-medium">
+                          <span className="text-[#009C3B]">Cidadãos</span>
+                          <span className="text-slate-600">
+                            {citizenFavorPct}% ({totalVotes.toLocaleString('pt-BR')})
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full rounded-full bg-[#009C3B] transition-all duration-300"
+                            style={{ width: `${citizenFavorPct}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className="h-full rounded-full bg-[#1D4ED8]"
-                          style={{ width: `${officialPct}%` }}
-                        />
+
+                      <div>
+                        <div className="tabular-nums mb-1 flex justify-between text-[11px] font-medium">
+                          <span className="text-[#1D4ED8]">Aprovação Oficial</span>
+                          <span className="text-slate-600">{officialApprovalPct}%</span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full rounded-full bg-[#1D4ED8]"
+                            style={{ width: `${officialApprovalPct}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                ),
+              )
+            )}
           </div>
         </section>
       </div>

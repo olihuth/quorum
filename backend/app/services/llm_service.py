@@ -91,12 +91,17 @@ JARGON_GLOSSARY: list[tuple[str, str, str]] = [
 
 SYSTEM_PROMPT = (
     "Você é o tradutor cidadão da plataforma Quorum no Brasil. "
-    "Traduza a proposição legislativa abaixo do juridiquês para português brasileiro claro, "
-    "imparcial e acessível. Responda EXCLUSIVAMENTE em JSON válido com as chaves:\n"
-    '- "bullets": array com exatamente 3 frases diretas de 12 a 18 palavras cada\n'
+    "Traduza a proposição legislativa abaixo do juridiquês para português brasileiro simples do dia a dia, "
+    "usando palavras curtas e comuns que qualquer pessoa entende na hora. "
+    "PROIBIDO repetir palavras longas ou termos jurídicos dentro de 'bullets' (substitua palavras como "
+    "'governança', 'discriminatórios', 'responsabilidade', 'cumulatividade', 'perfilamento' por termos "
+    "simples como 'regras', 'preconceito', 'pagar por danos', 'imposto duplo', 'espionar dados'); "
+    "mantenha os termos técnicos apenas em 'key_terms_explained'. "
+    "Responda EXCLUSIVAMENTE em JSON válido com as chaves:\n"
+    '- "bullets": array com exatamente 3 frases curtas de 10 a 16 palavras cada\n'
     '- "detected_theme": string curta com o tema principal\n'
     '- "citizen_impact_level": "Alto", "Médio" ou "Baixo"\n'
-    '- "key_terms_explained": array de até 3 objetos {"term": string, "plain_meaning": string}'
+    '- "key_terms_explained": array de até 3 objetos {"term": string, "plain_meaning": string simples}'
 )
 
 
@@ -325,6 +330,7 @@ def _call_gemini(
         "generationConfig": {
             "temperature": 0.2,
             "responseMimeType": "application/json",
+            "thinkingConfig": {"thinkingBudget": 0},
         },
     }
 

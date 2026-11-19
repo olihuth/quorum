@@ -1,10 +1,30 @@
 import json
+import os
 import sys
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from translator import translate_bill  # noqa: E402
+
+
+def _load_root_dotenv() -> None:
+    """Load key=value pairs from the repository root .env file if present."""
+    dotenv_path = Path(__file__).resolve().parent.parent / ".env"
+    if not dotenv_path.exists():
+        return
+    for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        clean_key = key.strip()
+        clean_val = value.strip().strip('"').strip("'")
+        if clean_key:
+            os.environ.setdefault(clean_key, clean_val)
 
 SAMPLE_BILLS = [
     {
@@ -92,15 +112,25 @@ SAMPLE_BILLS = [
 
 
 def main() -> None:
+    offline_mode = "--offline" in sys.argv
+    if not offline_mode:
+        _load_root_dotenv()
+
     print("=" * 82)
     print("QUORUM IA — AVALIAÇÃO DE GANHO DE LEGIBILIDADE (DESJURIDIQUÊS)")
+    if offline_mode:
+        print("MODO: Fallback Determinístico Offline (--offline)")
     print("=" * 82)
 
     results = []
     valid_json_count = 0
 
     for idx, sample in enumerate(SAMPLE_BILLS, start=1):
-        output = translate_bill(sample["title"], sample["official_summary"])
+        output = translate_bill(
+            sample["title"],
+            sample["official_summary"],
+            api_key="" if offline_mode else None,
+        )
         if len(output["bullets"]) == 3:
             valid_json_count += 1
 

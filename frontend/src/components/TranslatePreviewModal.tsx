@@ -329,7 +329,8 @@ export const TranslatePreviewModal: React.FC<TranslatePreviewModalProps> = ({
                   {result.metrics.flesch_before} → {result.metrics.flesch_after}
                 </p>
                 <p className="tabular-nums text-[11px] text-slate-500">
-                  +{result.metrics.readability_gain_points} pts ({result.metrics.level_after})
+                  {result.metrics.readability_gain_points >= 0 ? '+' : ''}
+                  {result.metrics.readability_gain_points} pts ({result.metrics.level_after})
                 </p>
               </div>
 

@@ -1,0 +1,7 @@
+bill_external_id,number,year,title,theme,house_slug,house_short_name,status,votes_favor,votes_against,total_citizen_votes,citizen_favor_pct,official_approval_pct
+senado-pl-2338-2023,PL 2338/2023,2023,Marco Legal da Inteligência Artificial no Brasil,Tecnologia e Direitos Digitais,senado-federal,Senado Federal,Em Tramitação,1840,360,2200,83.64,72.0
+camara-plp-68-2024,PLP 68/2024,2024,"Regulamentação da Reforma Tributária (IBS, CBS e Cashback)",Economia e Tributação,camara-dos-deputados,Câmara Federal,Aprovado,2410,1190,3600,66.94,74.0
+camara-pl-2628-2022,PL 2628/2022,2022,Proteção de Crianças e Adolescentes em Ambientes Digitais,Educação e Cidadania Digital,camara-dos-deputados,Câmara Federal,Votação Agendada,3120,210,3330,93.69,88.0
+alesp-pl-412-2025,PL 412/2025,2025,Incentivo à Geração Solar em Escolas Públicas Paulistas,Energia Limpa,alesp-sp,ALESP,Votação Agendada,980,140,1120,87.5,81.0
+cmsp-pl-118-2025,PL 118/2025,2025,Expansão de Corredores Verdes e Totens de Participação Cívica,Mobilidade e Cidade Sustentável,camara-sp,CMSP,Aprovado,760,240,1000,76.0,78.0
+camara-pec-18-2025,PEC 18/2025,2025,Reorganização de Fundos Paritários sem Quórum de Audiência,Administração Pública,camara-dos-deputados,Câmara Federal,Em Tramitação,410,1590,2000,20.5,76.0

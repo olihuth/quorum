@@ -1,0 +1,5 @@
+house_slug,house_short_name,level,total_seats,monitored_bills_count,approved_bills_count,total_citizen_votes,avg_citizen_favor_pct,avg_official_approval_pct,avg_convergence_index,party_fragmentation_hhi,effective_parties_enp,web_votes_audited,iot_totem_votes_audited,iot_share_pct
+camara-dos-deputados,Câmara Federal,Federal,513,3,1,8930,60.38,79.33,77.25,85.7,6.99,4,1,20.0
+senado-federal,Senado Federal,Federal,81,1,0,2200,83.64,72.0,88.36,83.71,6.14,1,1,50.0
+alesp-sp,ALESP,Estadual,94,1,0,1120,87.5,81.0,93.5,82.25,5.64,2,0,0.0
+camara-sp,CMSP,Municipal,55,1,1,1000,76.0,78.0,98.0,84.17,6.32,1,0,0.0

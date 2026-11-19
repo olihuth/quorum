@@ -1,0 +1,30 @@
+house_slug,house_short_name,level,total_seats,party_acronym,seat_count,seat_share_pct,house_fragmentation_hhi,effective_parties_enp
+camara-dos-deputados,Câmara Federal,Federal,513,PL,99,19.3,85.7,6.99
+camara-dos-deputados,Câmara Federal,Federal,513,PT,68,13.26,85.7,6.99
+camara-dos-deputados,Câmara Federal,Federal,513,UNIÃO,59,11.5,85.7,6.99
+camara-dos-deputados,Câmara Federal,Federal,513,PP,50,9.75,85.7,6.99
+camara-dos-deputados,Câmara Federal,Federal,513,MDB,44,8.58,85.7,6.99
+camara-dos-deputados,Câmara Federal,Federal,513,PSD,44,8.58,85.7,6.99
+camara-dos-deputados,Câmara Federal,Federal,513,REPUBLICANOS,41,7.99,85.7,6.99
+camara-dos-deputados,Câmara Federal,Federal,513,Outros,108,21.05,85.7,6.99
+senado-federal,Senado Federal,Federal,81,PSD,15,18.52,83.71,6.14
+senado-federal,Senado Federal,Federal,81,PL,14,17.28,83.71,6.14
+senado-federal,Senado Federal,Federal,81,MDB,11,13.58,83.71,6.14
+senado-federal,Senado Federal,Federal,81,PT,9,11.11,83.71,6.14
+senado-federal,Senado Federal,Federal,81,UNIÃO,7,8.64,83.71,6.14
+senado-federal,Senado Federal,Federal,81,PP,6,7.41,83.71,6.14
+senado-federal,Senado Federal,Federal,81,Outros,19,23.46,83.71,6.14
+alesp-sp,ALESP,Estadual,94,PL,19,20.21,82.25,5.64
+alesp-sp,ALESP,Estadual,94,PT,18,19.15,82.25,5.64
+alesp-sp,ALESP,Estadual,94,PSDB,9,9.57,82.25,5.64
+alesp-sp,ALESP,Estadual,94,REPUBLICANOS,8,8.51,82.25,5.64
+alesp-sp,ALESP,Estadual,94,UNIÃO,8,8.51,82.25,5.64
+alesp-sp,ALESP,Estadual,94,MDB,7,7.45,82.25,5.64
+alesp-sp,ALESP,Estadual,94,Outros,25,26.6,82.25,5.64
+camara-sp,CMSP,Municipal,55,MDB,7,12.73,84.17,6.32
+camara-sp,CMSP,Municipal,55,PL,7,12.73,84.17,6.32
+camara-sp,CMSP,Municipal,55,PT,8,14.55,84.17,6.32
+camara-sp,CMSP,Municipal,55,UNIÃO,7,12.73,84.17,6.32
+camara-sp,CMSP,Municipal,55,PSOL,6,10.91,84.17,6.32
+camara-sp,CMSP,Municipal,55,PSD,6,10.91,84.17,6.32
+camara-sp,CMSP,Municipal,55,Outros,14,25.45,84.17,6.32

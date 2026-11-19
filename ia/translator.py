@@ -2,9 +2,9 @@ import json
 import logging
 import os
 import re
+import urllib.parse
+import urllib.request
 from pathlib import Path
-
-import httpx
 
 from metrics import compute_translation_metrics
 
@@ -256,13 +256,21 @@ def _call_gemini(
         "generationConfig": {
             "temperature": 0.2,
             "responseMimeType": "application/json",
+            "thinkingConfig": {"thinkingBudget": 0},
         },
     }
 
-    with httpx.Client(timeout=60.0) as client:
-        response = client.post(url, params={"key": api_key}, json=body)
-        response.raise_for_status()
-        data = response.json()
+    query = urllib.parse.urlencode({"key": api_key})
+    request = urllib.request.Request(
+        f"{url}?{query}",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=60.0) as response:
+        if response.status >= 400:
+            raise RuntimeError(f"Gemini API returned HTTP {response.status}")
+        data = json.loads(response.read().decode("utf-8"))
 
     raw_text = _extract_gemini_json_text(data)
     parsed = json.loads(raw_text)
@@ -303,9 +311,8 @@ def translate_bill(
     """Translate a Brazilian bill into plain-language Desjuridiquês with measured gains."""
     resolved_key = (
         api_key
-        or os.getenv("LLM_API_KEY")
-        or os.getenv("GEMINI_API_KEY")
-        or ""
+        if api_key is not None
+        else (os.getenv("LLM_API_KEY") or os.getenv("GEMINI_API_KEY") or "")
     ).strip()
     resolved_model = (model or os.getenv("LLM_MODEL") or "gemini-4-hydrogen").strip()
 

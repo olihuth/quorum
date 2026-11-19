@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-11-19T23:10:36.630742+00:00",
+  "ingestion_mode": "Snapshot Offline Resiliente (API indisponível: URLError)",
+  "lgpd_anonymization": "SHA-256 irreversível (64 hexadecimais, zero PII em Silver/Gold)",
+  "bronze_raw_vote_events": 12,
+  "silver_deduplicated_vote_events": 10,
+  "duplicates_removed": 2,
+  "total_houses": 4,
+  "total_bills": 6,
+  "global_avg_convergence_index": 85.27,
+  "omnichannel_web_votes_audited": 8,
+  "omnichannel_iot_votes_audited": 2,
+  "omnichannel_iot_share_pct": 20.0,
+  "highest_convergence_bill": {
+    "number": "PL 118/2025",
+    "convergence_index": 98.0,
+    "classification": "Alta Convergência"
+  },
+  "lowest_convergence_bill": {
+    "number": "PEC 18/2025",
+    "convergence_index": 44.5,
+    "classification": "Desalinhamento Crítico"
+  }
+}

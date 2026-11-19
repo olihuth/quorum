@@ -1,0 +1,7 @@
+bill_external_id,number,title,house_slug,house_short_name,status,total_citizen_votes,citizen_favor_pct,official_approval_pct,convergence_index,alignment_classification,web_votes_audited,iot_totem_votes_audited,iot_share_pct
+senado-pl-2338-2023,PL 2338/2023,Marco Legal da Inteligência Artificial no Brasil,senado-federal,Senado Federal,Em Tramitação,2200,83.64,72.0,88.36,Alta Convergência,1,1,50.0
+camara-plp-68-2024,PLP 68/2024,"Regulamentação da Reforma Tributária (IBS, CBS e Cashback)",camara-dos-deputados,Câmara Federal,Aprovado,3600,66.94,74.0,92.94,Alta Convergência,2,0,0.0
+camara-pl-2628-2022,PL 2628/2022,Proteção de Crianças e Adolescentes em Ambientes Digitais,camara-dos-deputados,Câmara Federal,Votação Agendada,3330,93.69,88.0,94.31,Alta Convergência,1,1,50.0
+alesp-pl-412-2025,PL 412/2025,Incentivo à Geração Solar em Escolas Públicas Paulistas,alesp-sp,ALESP,Votação Agendada,1120,87.5,81.0,93.5,Alta Convergência,2,0,0.0
+cmsp-pl-118-2025,PL 118/2025,Expansão de Corredores Verdes e Totens de Participação Cívica,camara-sp,CMSP,Aprovado,1000,76.0,78.0,98.0,Alta Convergência,1,0,0.0
+camara-pec-18-2025,PEC 18/2025,Reorganização de Fundos Paritários sem Quórum de Audiência,camara-dos-deputados,Câmara Federal,Em Tramitação,2000,20.5,76.0,44.5,Desalinhamento Crítico,1,0,0.0

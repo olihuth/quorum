@@ -1,1 +1,1 @@
-httpx>=0.27.0,<1.0.0
+# Standalone /ia module uses Python 3.11+ standard library only (no third-party packages required).

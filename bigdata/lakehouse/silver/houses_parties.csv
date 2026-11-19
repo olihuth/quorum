@@ -1,0 +1,30 @@
+house_slug,house_short_name,level,total_seats,party_acronym,party_name,seat_count,seat_share_pct,color_hex
+camara-dos-deputados,Câmara Federal,Federal,513,PL,Partido Liberal,99,19.3,#1D4ED8
+camara-dos-deputados,Câmara Federal,Federal,513,PT,Partido dos Trabalhadores,68,13.26,#DC2626
+camara-dos-deputados,Câmara Federal,Federal,513,UNIÃO,União Brasil,59,11.5,#0284C7
+camara-dos-deputados,Câmara Federal,Federal,513,PP,Progressistas,50,9.75,#2563EB
+camara-dos-deputados,Câmara Federal,Federal,513,MDB,Movimento Democrático Brasileiro,44,8.58,#16A34A
+camara-dos-deputados,Câmara Federal,Federal,513,PSD,Partido Social Democrático,44,8.58,#D97706
+camara-dos-deputados,Câmara Federal,Federal,513,REPUBLICANOS,Republicanos,41,7.99,#0D9488
+camara-dos-deputados,Câmara Federal,Federal,513,Outros,Demais Bancadas,108,21.05,#64748B
+senado-federal,Senado Federal,Federal,81,PSD,Partido Social Democrático,15,18.52,#D97706
+senado-federal,Senado Federal,Federal,81,PL,Partido Liberal,14,17.28,#1D4ED8
+senado-federal,Senado Federal,Federal,81,MDB,Movimento Democrático Brasileiro,11,13.58,#16A34A
+senado-federal,Senado Federal,Federal,81,PT,Partido dos Trabalhadores,9,11.11,#DC2626
+senado-federal,Senado Federal,Federal,81,UNIÃO,União Brasil,7,8.64,#0284C7
+senado-federal,Senado Federal,Federal,81,PP,Progressistas,6,7.41,#2563EB
+senado-federal,Senado Federal,Federal,81,Outros,Demais Bancadas,19,23.46,#64748B
+alesp-sp,ALESP,Estadual,94,PL,Partido Liberal,19,20.21,#1D4ED8
+alesp-sp,ALESP,Estadual,94,PT,Partido dos Trabalhadores,18,19.15,#DC2626
+alesp-sp,ALESP,Estadual,94,PSDB,Partido da Social Democracia Brasileira,9,9.57,#0EA5E9
+alesp-sp,ALESP,Estadual,94,REPUBLICANOS,Republicanos,8,8.51,#0D9488
+alesp-sp,ALESP,Estadual,94,UNIÃO,União Brasil,8,8.51,#0284C7
+alesp-sp,ALESP,Estadual,94,MDB,Movimento Democrático Brasileiro,7,7.45,#16A34A
+alesp-sp,ALESP,Estadual,94,Outros,Demais Bancadas,25,26.6,#64748B
+camara-sp,CMSP,Municipal,55,MDB,Movimento Democrático Brasileiro,7,12.73,#16A34A
+camara-sp,CMSP,Municipal,55,PL,Partido Liberal,7,12.73,#1D4ED8
+camara-sp,CMSP,Municipal,55,PT,Partido dos Trabalhadores,8,14.55,#DC2626
+camara-sp,CMSP,Municipal,55,UNIÃO,União Brasil,7,12.73,#0284C7
+camara-sp,CMSP,Municipal,55,PSOL,Partido Socialismo e Liberdade,6,10.91,#EAB308
+camara-sp,CMSP,Municipal,55,PSD,Partido Social Democrático,6,10.91,#D97706
+camara-sp,CMSP,Municipal,55,Outros,Demais Bancadas,14,25.45,#64748B
