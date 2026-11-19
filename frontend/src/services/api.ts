@@ -4,6 +4,7 @@ import { MOCK_PARTIES } from '../data/mockData';
 import {
   Bill,
   BillStatus,
+  BillTranslationPreview,
   LegislativeHouse,
   LegislativeSphere,
   OfficialVoteChoice,
@@ -433,6 +434,19 @@ export async function updateUserSettingsApi(
       email_digest: payload.notifications?.emailDigest,
       status_change_notifications: payload.notifications?.statusChangeNotifications,
       followed_house_slugs: payload.followed_house_slugs,
+    }),
+  });
+}
+
+export async function translateBillPreviewApi(
+  title: string,
+  officialSummary: string,
+): Promise<BillTranslationPreview> {
+  return requestJson<BillTranslationPreview>('/bills/translate-preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      title,
+      official_summary: officialSummary,
     }),
   });
 }

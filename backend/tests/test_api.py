@@ -202,3 +202,72 @@ def test_admin_sync_and_mocked_ingestion(client: TestClient):
     ingested = [b for b in bills if b["external_id"] == "camara-pl-999888"]
     assert len(ingested) == 1
     assert len(ingested[0]["desjuridiques_summary"]) == 3
+
+
+def test_ai_translate_preview_and_metrics(client: TestClient):
+    payload = {
+        "title": "Marco Nacional da Mobilidade Urbana Sustentável",
+        "official_summary": (
+            "Institui diretrizes gerais para a integração intermodal de corredores exclusivos "
+            "de transporte público de baixa emissão e vincula repasses federais de mobilidade "
+            "ao cumprimento de acessibilidade universal mediante dotação orçamentária."
+        ),
+    }
+
+    # 1. Offline deterministic fallback mode (no LLM API key configured)
+    fallback_res = client.post("/api/v1/bills/translate-preview", json=payload)
+    assert fallback_res.status_code == 200
+    fallback_data = fallback_res.json()
+    assert fallback_data["provider"] == "fallback_deterministic"
+    assert len(fallback_data["bullets"]) == 3
+    assert len(fallback_data["key_terms_explained"]) >= 1
+    assert fallback_data["metrics"]["readability_gain_points"] > 0
+
+    # 2. Live Google Gemini 4 Hydrogen mocked JSON response mode (including thinking part)
+    gemini_mock = MagicMock()
+    gemini_mock.raise_for_status.return_value = None
+    gemini_mock.json.return_value = {
+        "candidates": [
+            {
+                "content": {
+                    "parts": [
+                        {
+                            "thought": True,
+                            "text": "Thinking through the Brazilian legal articles and extracting 3 plain bullets...",
+                        },
+                        {
+                            "text": (
+                                '```json\n{"bullets": ['
+                                '"Prioriza verba federal para corredores de ônibus elétricos nas cidades.",'
+                                '"Exige calçadas e terminais com piso tátil e rampas acessíveis.",'
+                                '"Reduz o tempo de viagem diária entre casa e trabalho."'
+                                '], "detected_theme": "Mobilidade Urbana", '
+                                '"citizen_impact_level": "Alto", '
+                                '"key_terms_explained": [{"term": "Integração intermodal", '
+                                '"plain_meaning": "Conexão fácil entre ônibus, metrô e bicicleta."}]}\n```'
+                            )
+                        },
+                    ]
+                }
+            }
+        ]
+    }
+
+    mock_client_instance = MagicMock()
+    mock_client_instance.__enter__.return_value.post.return_value = gemini_mock
+
+    os.environ["LLM_API_KEY"] = "test-gemini-key"
+    get_settings.cache_clear()
+    try:
+        with patch("app.services.llm_service.httpx.Client", return_value=mock_client_instance):
+            gemini_res = client.post("/api/v1/bills/translate-preview", json=payload)
+    finally:
+        os.environ.pop("LLM_API_KEY", None)
+        get_settings.cache_clear()
+
+    assert gemini_res.status_code == 200
+    gemini_data = gemini_res.json()
+    assert gemini_data["provider"] == "google_gemini"
+    assert gemini_data["model"] == "gemini-4-hydrogen"
+    assert len(gemini_data["bullets"]) == 3
+    assert gemini_data["metrics"]["flesch_after"] > gemini_data["metrics"]["flesch_before"]

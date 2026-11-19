@@ -218,3 +218,37 @@ class AuthTokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserProfileOut
+
+
+class KeyTermExplanation(BaseModel):
+    term: str
+    plain_meaning: str
+
+
+class TranslationMetricsOut(BaseModel):
+    original_word_count: int
+    summary_word_count: int
+    word_reduction_pct: float
+    flesch_before: float
+    flesch_after: float
+    readability_gain_points: float
+    level_before: str
+    level_after: str
+    reading_time_before_sec: int
+    reading_time_after_sec: int
+    reading_time_saved_sec: int
+
+
+class BillTranslatePreviewRequest(BaseModel):
+    title: str = Field(..., min_length=3, max_length=300)
+    official_summary: str = Field(..., min_length=10, max_length=5000)
+
+
+class BillTranslatePreviewResponse(BaseModel):
+    bullets: list[str]
+    detected_theme: str
+    citizen_impact_level: str
+    key_terms_explained: list[KeyTermExplanation]
+    provider: str
+    model: str
+    metrics: TranslationMetricsOut

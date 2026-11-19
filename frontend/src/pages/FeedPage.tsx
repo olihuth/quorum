@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Sparkles } from 'lucide-react';
 import { BillCard } from '../components/BillCard';
+import { TranslatePreviewModal } from '../components/TranslatePreviewModal';
 import { Bill, BillStatus, LegislativeHouse, VoteOption } from '../types/quorum';
 
 interface FeedPageProps {
@@ -38,6 +39,7 @@ export const FeedPage: React.FC<FeedPageProps> = ({
   const [communityFilter, setCommunityFilter] = useState<CommunityFilter>('followed');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isTranslateModalOpen, setIsTranslateModalOpen] = useState(false);
 
   const filteredBills = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -96,15 +98,26 @@ export const FeedPage: React.FC<FeedPageProps> = ({
             </span>
           </div>
 
-          <div className="relative w-full sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar PL, tema ou autor..."
-              className="w-full rounded-lg border border-[#E2E8F0] bg-white py-1.5 pl-8 pr-3 text-xs text-[#0F172A] placeholder:text-slate-400 focus:border-[#002776] focus:outline-none"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 sm:w-56 sm:flex-initial">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar PL, tema ou autor..."
+                className="w-full rounded-lg border border-[#E2E8F0] bg-white py-1.5 pl-8 pr-3 text-xs text-[#0F172A] placeholder:text-slate-400 focus:border-[#002776] focus:outline-none"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsTranslateModalOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#002776] transition-colors hover:border-[#002776] hover:bg-[#F8FAFC]"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-[#EAB308]" />
+              <span>Traduzir um PL (IA)</span>
+            </button>
           </div>
         </div>
 
@@ -210,6 +223,11 @@ export const FeedPage: React.FC<FeedPageProps> = ({
           ))}
         </div>
       )}
+
+      <TranslatePreviewModal
+        isOpen={isTranslateModalOpen}
+        onClose={() => setIsTranslateModalOpen(false)}
+      />
     </div>
   );
 };

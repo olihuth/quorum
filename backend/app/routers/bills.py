@@ -8,10 +8,13 @@ from app.core.security import hash_citizen_identifier
 from app.models.legislative import Bill, CitizenVote, LegislativeHouse, Politician
 from app.schemas.legislative import (
     BillOut,
+    BillTranslatePreviewRequest,
+    BillTranslatePreviewResponse,
     CitizenVoteRequest,
     LikeResponse,
     VoteResponse,
 )
+from app.services.llm_service import translate_bill_preview
 
 router = APIRouter(prefix="/bills", tags=["Bills"])
 
@@ -122,6 +125,15 @@ def record_bill_vote(
         against_percentage=against_pct,
         message="Voto registrado com sucesso na enquete cidadã.",
     )
+
+
+@router.post("/translate-preview", response_model=BillTranslatePreviewResponse)
+def translate_bill_preview_endpoint(
+    payload: BillTranslatePreviewRequest,
+) -> BillTranslatePreviewResponse:
+    """Live Desjuridiquês translation preview with before/after Portuguese readability metrics."""
+    result = translate_bill_preview(payload.title, payload.official_summary)
+    return BillTranslatePreviewResponse(**result)
 
 
 @router.get("", response_model=list[BillOut])

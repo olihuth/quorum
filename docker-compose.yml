@@ -32,6 +32,10 @@ services:
       JWT_SECRET_KEY: quorum-dev-jwt-secret
       CORS_ORIGINS: http://localhost:5173
       ENABLE_SCHEDULER: "true"
+      LLM_PROVIDER: gemini
+      LLM_MODEL: ${LLM_MODEL:-gemini-4-hydrogen}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:
       - "8000:8000"
 

@@ -135,3 +135,32 @@ export interface ToastNotification {
   message: string;
   variant: 'success' | 'info' | 'warning';
 }
+
+export interface KeyTermExplanation {
+  term: string;
+  plain_meaning: string;
+}
+
+export interface TranslationMetrics {
+  original_word_count: number;
+  summary_word_count: number;
+  word_reduction_pct: number;
+  flesch_before: number;
+  flesch_after: number;
+  readability_gain_points: number;
+  level_before: string;
+  level_after: string;
+  reading_time_before_sec: number;
+  reading_time_after_sec: number;
+  reading_time_saved_sec: number;
+}
+
+export interface BillTranslationPreview {
+  bullets: string[];
+  detected_theme: string;
+  citizen_impact_level: string;
+  key_terms_explained: KeyTermExplanation[];
+  provider: string;
+  model: string;
+  metrics: TranslationMetrics;
+}
