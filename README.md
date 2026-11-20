@@ -2,7 +2,7 @@
 
 Plataforma **CitizenTech** desenvolvida para a **Global Solution 2026/2 (FIAP — Engenharia de Software)** com foco em reduzir o abismo entre o cidadão brasileiro e o Poder Legislativo. O **Quorum** coleta proposições e dados reais da Câmara dos Deputados e do Senado Federal, traduz o juridiquês para português simples com IA (**Desjuridiquês**), habilita votação cidadã omnichannel (**Web + Totem IoT presencial**) com anonimização criptográfica **LGPD** e consolida indicadores em arquitetura analítica **Medallion (Bronze → Silver → Gold)**.
 
-> **Vídeo Pitch (até 3 minutos):** `[INSERIR LINK PÚBLICO DO VÍDEO PITCH AQUI]`
+> **Vídeo Pitch (até 3 minutos):** https://www.youtube.com/watch?v=9Pa_HJvy6no
 
 ---
 

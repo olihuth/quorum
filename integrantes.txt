@@ -1,0 +1,14 @@
+GLOBAL SOLUTION 2026/2 - CITIZENTECH - FIAP 4ESOA
+Projeto: Quorum - Transparência Legislativa e Participação Cidadã
+
+Nome do grupo: Quorum
+
+Integrantes (Nome completo - RM):
+1. Juliana Alves - RM98033
+2. Isabelle Beatriz Dias Bandeira - RM550330
+3. Oliver Freire Huth - RM551424
+4. Saul Henrique Araujo Vasconcelos Andrade - RM98383
+
+Link do vídeo pitch (público): https://www.youtube.com/watch?v=9Pa_HJvy6no
+
+Repositório: https://github.com/olihuth/quorum
